@@ -1,0 +1,99 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "SakuraPuare 个人仓库共享 Renovate 规则。目标仓库无需放任何配置文件 —— runner 侧 config.js 用 requireConfig:optional + extends 把这份规则套到全部仓库上。某个仓库要微调时，往它根目录放 renovate.json 覆盖即可。",
+    "⚠️ packageRules 数组顺序有意义：后面的规则覆盖前面的。降噪/放宽类规则（devDependencies 分组、digest 自动合）放前段，风险护栏（运行时 / major / 0.x minor）放后段 —— 顺序颠倒会让护栏被 automerge:true 覆盖掉。加规则时注意放对位置。"
+  ],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "Asia/Shanghai",
+  "schedule": ["after 2am and before 7am"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 4,
+  "labels": ["dependencies"],
+
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": false,
+  "automergeStrategy": "squash",
+  "minimumReleaseAge": "3 days",
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on the first day of the month"],
+    "automerge": true
+  },
+
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "minimumReleaseAge": null,
+    "schedule": null
+  },
+
+  "packageRules": [
+    {
+      "description": "同生态的开发期依赖（linter/formatter/类型定义/测试框架）打包成一个 PR，减少噪音。它们不进运行时产物。注意：0.x / major 的护栏在本条之后，会正确覆盖这里的 automerge。",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev-dependencies",
+      "automerge": true
+    },
+    {
+      "description": "GitHub Actions digest pin 更新：纯 sha 重指向，同 tag 内容，风险最低，1 天冷却即可自动合。",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "automerge": true,
+      "minimumReleaseAge": "1 day"
+    },
+    {
+      "description": "容器基础镜像的 digest 更新同理：多为上游安全补丁重构建，越早跟越好。",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "minimumReleaseAge": "1 day"
+    },
+    {
+      "description": "Go/Python/Node 的语言运行时本体单独拎出来人工过：升语言版本常连带 CI 镜像、构建约束、语法可用性，不是普通依赖。",
+      "matchDepNames": [
+        "go",
+        "golang",
+        "node",
+        "python",
+        "python-slim",
+        "actions/setup-go",
+        "actions/setup-node",
+        "actions/setup-python"
+      ],
+      "matchUpdateTypes": ["major", "minor"],
+      "automerge": false,
+      "addLabels": ["runtime", "needs-review"]
+    },
+    {
+      "description": "major 一律人工：SemVer 下只有 major 允许破坏兼容，automerge 它等于放弃唯一的护栏。7 天冷却让上游先出 .1 补丁。",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "minimumReleaseAge": "7 days",
+      "addLabels": ["major", "needs-review"]
+    },
+    {
+      "description": "0.x 包的 minor 视同 major：SemVer 下 0.x 的 minor 可以随意破坏兼容，automerge 它和 automerge major 一样危险。",
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": ["minor"],
+      "automerge": false,
+      "minimumReleaseAge": "7 days",
+      "addLabels": ["needs-review", "zero-major"]
+    },
+    {
+      "description": "自建 Harbor 的 CI 产物镜像（sha tag）不由 Renovate 管 —— tag 是 git sha，由 CI writeback 提交。",
+      "matchPackageNames": [
+        "/^registry\\.sakurapuare\\.com\\/(hive|ink|new-api|sub2api)\\//"
+      ],
+      "enabled": false
+    }
+  ]
+}
