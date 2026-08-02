@@ -6,8 +6,11 @@ SakuraPuare 个人仓库的 Renovate 中央配置 + self-hosted runner。
 
 ## 怎么跑的
 
-- `.github/workflows/renovate.yml` — runner，每天 02:17 / 14:17（Asia/Shanghai）各一轮，
+- `.github/workflows/renovate.yml` — runner，每天 02:17 + 03:17（Asia/Shanghai）各一轮，
   也可手动 `workflow_dispatch`（带 dry-run 开关）。
+  ⚠️ **改 cron 时间时必须确认新时间仍落在 `default.json` 的 `schedule` 窗口内**
+  （现为 `after 2am and before 7am`）。窗口外的 run 对普通更新完全无事可做 —— 只有
+  `vulnerabilityAlerts`（显式 `schedule: null`）能穿过。这个坑 2026-08-02 实测踩过一次。
 - `config.js` — runner 全局配置：仓库清单 + `requireConfig: 'optional'`（目标仓库无配置也照跑）
   + `extends` 指向本仓库 `default.json`。
 - `default.json` — 共享规则本体，也是可被别人 `extends` 的标准 preset。

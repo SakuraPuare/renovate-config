@@ -2,11 +2,18 @@ name: Renovate
 
 on:
   schedule:
-    # 每天 02:17 / 14:17 Asia/Shanghai(UTC+8) → 18:17 / 06:17 UTC。
-    # 跑两次是因为目标仓库都关着 GitHub 原生 auto-merge（allow_auto_merge=false），
-    # Renovate 只能在"下一轮"回来自己合已变绿的 PR。一天两轮把合并延迟压到 ~12h。
+    # 每天 02:17 + 03:17 Asia/Shanghai(UTC+8) → 18:17 + 19:17 UTC。
+    #
+    # ⚠️ 两个时间【必须都落在 default.json 的 schedule 窗口 (after 2am and before 7am) 内】。
+    # 2026-08-02 实测教训：初版第二轮设在 14:17 CST，在窗口外 → 该轮对普通更新完全无事可做
+    # （dry-run 日志里 Hive 115 个依赖只产出 4 个 vulnerability 分支，普通更新全被 schedule 挡掉，
+    # 因为只有 vulnerabilityAlerts 显式设了 schedule:null 才能穿过窗口）。
+    #
+    # 为什么要跑两轮：目标仓库都关着 GitHub 原生 auto-merge（allow_auto_merge=false），
+    # 故 platformAutomerge:false，由 Renovate 自己调 API 合。有 CI 的仓库 PR 刚开时检查还没绿，
+    # 第一轮合不了，需要下一轮回来合 → 间隔 1h 足够（CI 几分钟就跑完），不需要隔 12h。
     - cron: "17 18 * * *"
-    - cron: "17 6 * * *"
+    - cron: "17 19 * * *"
   workflow_dispatch:
     inputs:
       dryRun:
