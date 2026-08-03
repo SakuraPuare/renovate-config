@@ -6,11 +6,24 @@ SakuraPuare 个人仓库的 Renovate 中央配置 + self-hosted runner。
 
 ## 怎么跑的
 
-- `.github/workflows/renovate.yml` — runner，每天 02:17 + 03:17（Asia/Shanghai）各一轮，
-  也可手动 `workflow_dispatch`（带 dry-run 开关）。
-  ⚠️ **改 cron 时间时必须确认新时间仍落在 `default.json` 的 `schedule` 窗口内**
-  （现为 `after 2am and before 7am`）。窗口外的 run 对普通更新完全无事可做 —— 只有
-  `vulnerabilityAlerts`（显式 `schedule: null`）能穿过。这个坑 2026-08-02 实测踩过一次。
+- `.github/workflows/renovate.yml` — ⚠️ **定时触发已停用**（2026-08-03），只留
+  `workflow_dispatch` 作应急手动入口。
+
+## 真正的 runner 在哪
+
+**家里 K8s 集群**，不在 GitHub Actions：`homelab-gitops` 仓库 `apps/renovate/`，
+CronJob `17 2,3 * * *` + `timeZone: Asia/Shanghai`。
+
+挪进集群的原因：① 本账号免费 Actions 配额耗尽（3000/3000），runner 不再分配；
+② token 只需存 Infisical 一处（Actions 读不到 Infisical，那条路要在两边各存一份 PAT）。
+
+⚠️ **两边不能同时定时跑** —— 实测两个 Renovate 实例用同一个 token 并发操作同一批仓库时，
+会 `FATAL: Initialization error / Authentication failure`。要恢复 Actions 定时必须先停集群 CronJob。
+
+⚠️ 改任何一侧的排期时间，都必须确认新时间落在 `default.json` 的 `schedule` 窗口内
+（现为 `after 2am and before 7am`, Asia/Shanghai）。窗口外的 run 对普通更新完全无事可做 ——
+只有 `vulnerabilityAlerts`（显式 `schedule: null`）能穿过。2026-08-02 实测踩过：窗口外那轮
+在 Hive 上看到 115 个依赖，却只产出 4 个 vulnerability 分支。
 - `config.js` — runner 全局配置：仓库清单 + `requireConfig: 'optional'`（目标仓库无配置也照跑）
   + `extends` 指向本仓库 `default.json`。
 - `default.json` — 共享规则本体，也是可被别人 `extends` 的标准 preset。
