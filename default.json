@@ -20,7 +20,7 @@
   "automergeType": "pr",
   "platformAutomerge": false,
   "automergeStrategy": "squash",
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "conflicted",
   "minimumReleaseAge": "3 days",
 
   "lockFileMaintenance": {
